@@ -9,18 +9,21 @@ DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 SISTEM_PROMPTU = """Sen Ewin AI'sın. Grit Discord sunucusunun resmi yapay zeka botusun.
-Karakterin:
-- Samimi ve arkadaşça konuşursun, kullanıcılarla sıcak bir bağ kurarsın
+Karakterin ve kuralların:
+- Samimi, arkadaşça ve sıcakkanlısın
 - Zaman zaman komik ve eğlenceli olursun, espri yaparsın
 - Gerektiğinde ciddi ve profesyonel davranırsın
-- Her zaman Türkçe konuşursun
-- Kendini tanıtırken "Ben Ewin AI'yım" dersin
-- Çok uzun cevaplar vermezsin, sohbet havasında kısa ve öz konuşursun
-- Küfür etmezsin ama argo kullanabilirsin"""
+- Her zaman Türkçe konuşursun, asla başka dile geçmezsin
+- Kendini tanıtırken "Ben Ewin AI'yım, Grit sunucusunun yapay zeka botuyum" dersin
+- Çok uzun cevaplar vermezsin, sohbet havasında doğal konuşursun
+- Küfür etmezsin ama argo kullanabilirsin
+- Kullanıcıya "kanka", "abi", "kardeş" gibi hitaplar kullanabilirsin
+- Sana kim yaptı diye sorarlarsa "Grit ekibi yaptı" dersin
+- Çok zekisin, her konuda yardımcı olabilirsin: sohbet, hikaye, bilgi, öneri, analiz vs."""
 
 intents = discord.Intents.default()
 intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="/", intents=intents)
 sohbet_gecmisi = {}
 
 def ai_yanit_al(mesajlar):
@@ -28,7 +31,8 @@ def ai_yanit_al(mesajlar):
     veri = json.dumps({
         "model": "llama-3.3-70b-versatile",
         "messages": [{"role": "system", "content": SISTEM_PROMPTU}] + mesajlar,
-        "max_tokens": 500
+        "max_tokens": 800,
+        "temperature": 0.85
     }).encode("utf-8")
 
     istek = urllib.request.Request(url, data=veri, method="POST")
@@ -46,8 +50,8 @@ async def on_ready():
     print(f"✅ {bot.user} olarak giriş yapıldı!")
     await bot.change_presence(
         activity=discord.Activity(
-            type=discord.ActivityType.watching,
-            name="/Grit"
+            type=discord.ActivityType.playing,
+            name="/help"
         )
     )
 
@@ -60,7 +64,7 @@ async def on_message(message):
     if bot.user.mentioned_in(message) or isinstance(message.channel, discord.DMChannel):
         kullanici_mesaj = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not kullanici_mesaj:
-            await message.reply("Selam! 😊 Ne istiyorsun?")
+            await message.reply("Selam! 👋 Bir şeye ihtiyacın var mı? `/help` yazarsan ne yapabileceğimi görebilirsin.")
             return
 
         kullanici_id = str(message.author.id)
@@ -68,8 +72,8 @@ async def on_message(message):
             sohbet_gecmisi[kullanici_id] = []
 
         sohbet_gecmisi[kullanici_id].append({"role": "user", "content": kullanici_mesaj})
-        if len(sohbet_gecmisi[kullanici_id]) > 10:
-            sohbet_gecmisi[kullanici_id] = sohbet_gecmisi[kullanici_id][-10:]
+        if len(sohbet_gecmisi[kullanici_id]) > 14:
+            sohbet_gecmisi[kullanici_id] = sohbet_gecmisi[kullanici_id][-14:]
 
         try:
             async with message.channel.typing():
@@ -87,11 +91,41 @@ async def on_message(message):
         except Exception as e:
             await message.reply(f"❌ Hata: {str(e)}")
 
+@bot.command(name="help")
+async def yardim(ctx):
+    embed = discord.Embed(
+        title="🤖 Merhaba, ben Ewin AI!",
+        description="Grit Discord sunucusunun resmi yapay zeka botuyum. Grit ekibi tarafından geliştirildi.",
+        color=0x5865F2
+    )
+    embed.add_field(
+        name="💬 Nasıl Kullanılır?",
+        value="Benimle konuşmak için beni **@mention** at!\nÖrnek: `@Ewin AI merhaba`",
+        inline=False
+    )
+    embed.add_field(
+        name="🧠 Ne Yapabilirim?",
+        value="• Seninle sohbet ederim\n• Sorularını cevaplarım\n• Hikaye yazarım\n• Fikir üretirim\n• Analiz yaparım\n• Yardımcı olacağım her konuda buradayım!",
+        inline=False
+    )
+    embed.add_field(
+        name="📋 Komutlar",
+        value="`/help` — Bu menüyü gösterir\n`/sifirla` — Seninle olan sohbet geçmişimi sıfırlarım",
+        inline=False
+    )
+    embed.add_field(
+        name="⚡ Özellikler",
+        value="• Sohbet geçmişini hatırlarım\n• Her zaman Türkçe konuşurum\n• 7/24 aktifim",
+        inline=False
+    )
+    embed.set_footer(text="Ewin AI • Grit Sunucusu")
+    await ctx.reply(embed=embed)
+
 @bot.command(name="sifirla")
 async def sifirla(ctx):
     kullanici_id = str(ctx.author.id)
     if kullanici_id in sohbet_gecmisi:
         del sohbet_gecmisi[kullanici_id]
-    await ctx.reply("🔄 Sıfırlandı!")
+    await ctx.reply("🔄 Sohbet geçmişin sıfırlandı! Yeni bir sayfa açtık kanka.")
 
 bot.run(DISCORD_TOKEN)
