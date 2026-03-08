@@ -26,6 +26,8 @@ def ai_yanit_al(mesajlar):
     istek = urllib.request.Request(url, data=veri, method="POST")
     istek.add_header("Content-Type", "application/json")
     istek.add_header("Authorization", f"Bearer {GROQ_API_KEY}")
+    istek.add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+    istek.add_header("Accept", "application/json")
 
     with urllib.request.urlopen(istek, timeout=30) as yanit:
         sonuc = json.loads(yanit.read().decode("utf-8"))
@@ -67,7 +69,7 @@ async def on_message(message):
 
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8")
-            await message.reply(f"❌ Hata {e.code}: {body[:200]}")
+            await message.reply(f"❌ Hata {e.code}: {body[:300]}")
         except Exception as e:
             await message.reply(f"❌ Hata: {str(e)}")
 
