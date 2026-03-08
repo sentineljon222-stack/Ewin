@@ -18,7 +18,7 @@ sohbet_gecmisi = {}
 def ai_yanit_al(mesajlar):
     url = "https://api.groq.com/openai/v1/chat/completions"
     veri = json.dumps({
-        "model": "llama3-8b-8192",
+        "model": "llama-3.1-8b-instant",
         "messages": [{"role": "system", "content": SISTEM_PROMPTU}] + mesajlar,
         "max_tokens": 500
     }).encode("utf-8")
