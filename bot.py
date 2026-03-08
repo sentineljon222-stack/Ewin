@@ -6,7 +6,7 @@ import json
 import asyncio
 
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 SISTEM_PROMPTU = "Sen Türkçe konuşan, samimi ve yardımsever bir Discord botusun. Her zaman Türkçe yanıt ver, kısa ve öz ol."
 
@@ -16,23 +16,20 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 sohbet_gecmisi = {}
 
 def ai_yanit_al(mesajlar):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
-    
-    icerik = [
-        {"role": "user", "parts": [{"text": SISTEM_PROMPTU}]},
-        {"role": "model", "parts": [{"text": "Anladım!"}]}
-    ]
-    for m in mesajlar:
-        rol = "user" if m["role"] == "user" else "model"
-        icerik.append({"role": rol, "parts": [{"text": m["content"]}]})
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    veri = json.dumps({
+        "model": "llama3-8b-8192",
+        "messages": [{"role": "system", "content": SISTEM_PROMPTU}] + mesajlar,
+        "max_tokens": 500
+    }).encode("utf-8")
 
-    veri = json.dumps({"contents": icerik}).encode("utf-8")
     istek = urllib.request.Request(url, data=veri, method="POST")
     istek.add_header("Content-Type", "application/json")
+    istek.add_header("Authorization", f"Bearer {GROQ_API_KEY}")
 
     with urllib.request.urlopen(istek, timeout=30) as yanit:
         sonuc = json.loads(yanit.read().decode("utf-8"))
-        return sonuc["candidates"][0]["content"]["parts"][0]["text"]
+        return sonuc["choices"][0]["message"]["content"]
 
 @bot.event
 async def on_ready():
@@ -69,10 +66,8 @@ async def on_message(message):
             await message.reply(bot_yaniti)
 
         except urllib.error.HTTPError as e:
-            if e.code == 429:
-                await message.reply("⏳ Çok fazla istek, 1 dakika bekle!")
-            else:
-                await message.reply(f"❌ Hata {e.code}: {e.reason}")
+            body = e.read().decode("utf-8")
+            await message.reply(f"❌ Hata {e.code}: {body[:200]}")
         except Exception as e:
             await message.reply(f"❌ Hata: {str(e)}")
 
