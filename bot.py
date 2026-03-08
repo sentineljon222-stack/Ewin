@@ -18,7 +18,7 @@ sohbet_gecmisi = {}
 def ai_yanit_al(mesajlar):
     url = "https://openrouter.ai/api/v1/chat/completions"
     veri = json.dumps({
-        "model": "meta-llama/llama-3.1-8b-instruct:free",
+        "model": "mistralai/mistral-7b-instruct:free",
         "messages": [{"role": "system", "content": SISTEM_PROMPTU}] + mesajlar,
         "max_tokens": 500
     }).encode("utf-8")
