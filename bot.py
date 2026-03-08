@@ -6,35 +6,31 @@ import json
 import asyncio
 
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
-SISTEM_PROMPTU = """Sen Türkçe konuşan, samimi ve yardımsever bir Discord botusun. 
-Her zaman Türkçe yanıt ver, samimi ve arkadaşça ol, kısa ve öz cevaplar ver."""
+SISTEM_PROMPTU = "Sen Türkçe konuşan, samimi ve yardımsever bir Discord botusun. Her zaman Türkçe yanıt ver, kısa ve öz ol."
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
-
 sohbet_gecmisi = {}
 
-def gemini_yanit_al(mesajlar):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
-    
-    # Sistem promptunu ve geçmişi birleştir
-    icerik = [{"role": "user", "parts": [{"text": SISTEM_PROMPTU}]},
-              {"role": "model", "parts": [{"text": "Anladım, Türkçe konuşan yardımsever bir bot olarak hizmet vereceğim!"}]}]
-    
-    for m in mesajlar:
-        rol = "user" if m["role"] == "user" else "model"
-        icerik.append({"role": rol, "parts": [{"text": m["content"]}]})
-    
-    veri = json.dumps({"contents": icerik}).encode("utf-8")
+def ai_yanit_al(mesajlar):
+    url = "https://openrouter.ai/api/v1/chat/completions"
+    veri = json.dumps({
+        "model": "meta-llama/llama-3.1-8b-instruct:free",
+        "messages": [{"role": "system", "content": SISTEM_PROMPTU}] + mesajlar,
+        "max_tokens": 500
+    }).encode("utf-8")
+
     istek = urllib.request.Request(url, data=veri, method="POST")
     istek.add_header("Content-Type", "application/json")
-    
-    with urllib.request.urlopen(istek) as yanit:
+    istek.add_header("Authorization", f"Bearer {OPENROUTER_API_KEY}")
+    istek.add_header("HTTP-Referer", "https://discord.com")
+
+    with urllib.request.urlopen(istek, timeout=30) as yanit:
         sonuc = json.loads(yanit.read().decode("utf-8"))
-        return sonuc["candidates"][0]["content"]["parts"][0]["text"]
+        return sonuc["choices"][0]["message"]["content"]
 
 @bot.event
 async def on_ready():
@@ -63,7 +59,7 @@ async def on_message(message):
         try:
             async with message.channel.typing():
                 loop = asyncio.get_event_loop()
-                bot_yaniti = await loop.run_in_executor(None, gemini_yanit_al, sohbet_gecmisi[kullanici_id])
+                bot_yaniti = await loop.run_in_executor(None, ai_yanit_al, sohbet_gecmisi[kullanici_id])
 
             sohbet_gecmisi[kullanici_id].append({"role": "assistant", "content": bot_yaniti})
             if len(bot_yaniti) > 2000:
