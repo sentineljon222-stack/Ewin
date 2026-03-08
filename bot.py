@@ -8,7 +8,15 @@ import asyncio
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
-SISTEM_PROMPTU = "Sen Türkçe konuşan, samimi ve yardımsever bir Discord botusun. Her zaman Türkçe yanıt ver, kısa ve öz ol."
+SISTEM_PROMPTU = """Sen Ewin AI'sın. Grit Discord sunucusunun resmi yapay zeka botusun.
+Karakterin:
+- Samimi ve arkadaşça konuşursun, kullanıcılarla sıcak bir bağ kurarsın
+- Zaman zaman komik ve eğlenceli olursun, espri yaparsın
+- Gerektiğinde ciddi ve profesyonel davranırsın
+- Her zaman Türkçe konuşursun
+- Kendini tanıtırken "Ben Ewin AI'yım" dersin
+- Çok uzun cevaplar vermezsin, sohbet havasında kısa ve öz konuşursun
+- Küfür etmezsin ama argo kullanabilirsin"""
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -18,7 +26,7 @@ sohbet_gecmisi = {}
 def ai_yanit_al(mesajlar):
     url = "https://api.groq.com/openai/v1/chat/completions"
     veri = json.dumps({
-        "model": "llama-3.1-8b-instant",
+        "model": "llama-3.3-70b-versatile",
         "messages": [{"role": "system", "content": SISTEM_PROMPTU}] + mesajlar,
         "max_tokens": 500
     }).encode("utf-8")
@@ -52,7 +60,7 @@ async def on_message(message):
     if bot.user.mentioned_in(message) or isinstance(message.channel, discord.DMChannel):
         kullanici_mesaj = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not kullanici_mesaj:
-            await message.reply("Merhaba! 😊")
+            await message.reply("Selam! 😊 Ne istiyorsun?")
             return
 
         kullanici_id = str(message.author.id)
