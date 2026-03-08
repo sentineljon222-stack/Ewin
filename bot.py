@@ -6,7 +6,7 @@ import json
 import asyncio
 
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN")
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 SISTEM_PROMPTU = "Sen Türkçe konuşan, samimi ve yardımsever bir Discord botusun. Her zaman Türkçe yanıt ver, kısa ve öz ol."
 
@@ -16,21 +16,23 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 sohbet_gecmisi = {}
 
 def ai_yanit_al(mesajlar):
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    veri = json.dumps({
-        "model": "mistralai/mistral-7b-instruct:free",
-        "messages": [{"role": "system", "content": SISTEM_PROMPTU}] + mesajlar,
-        "max_tokens": 500
-    }).encode("utf-8")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+    
+    icerik = [
+        {"role": "user", "parts": [{"text": SISTEM_PROMPTU}]},
+        {"role": "model", "parts": [{"text": "Anladım!"}]}
+    ]
+    for m in mesajlar:
+        rol = "user" if m["role"] == "user" else "model"
+        icerik.append({"role": rol, "parts": [{"text": m["content"]}]})
 
+    veri = json.dumps({"contents": icerik}).encode("utf-8")
     istek = urllib.request.Request(url, data=veri, method="POST")
     istek.add_header("Content-Type", "application/json")
-    istek.add_header("Authorization", f"Bearer {OPENROUTER_API_KEY}")
-    istek.add_header("HTTP-Referer", "https://discord.com")
 
     with urllib.request.urlopen(istek, timeout=30) as yanit:
         sonuc = json.loads(yanit.read().decode("utf-8"))
-        return sonuc["choices"][0]["message"]["content"]
+        return sonuc["candidates"][0]["content"]["parts"][0]["text"]
 
 @bot.event
 async def on_ready():
@@ -45,7 +47,7 @@ async def on_message(message):
     if bot.user.mentioned_in(message) or isinstance(message.channel, discord.DMChannel):
         kullanici_mesaj = message.content.replace(f"<@{bot.user.id}>", "").strip()
         if not kullanici_mesaj:
-            await message.reply("Merhaba! Nasıl yardımcı olabilirim? 😊")
+            await message.reply("Merhaba! 😊")
             return
 
         kullanici_id = str(message.author.id)
@@ -53,8 +55,8 @@ async def on_message(message):
             sohbet_gecmisi[kullanici_id] = []
 
         sohbet_gecmisi[kullanici_id].append({"role": "user", "content": kullanici_mesaj})
-        if len(sohbet_gecmisi[kullanici_id]) > 20:
-            sohbet_gecmisi[kullanici_id] = sohbet_gecmisi[kullanici_id][-20:]
+        if len(sohbet_gecmisi[kullanici_id]) > 10:
+            sohbet_gecmisi[kullanici_id] = sohbet_gecmisi[kullanici_id][-10:]
 
         try:
             async with message.channel.typing():
@@ -66,6 +68,11 @@ async def on_message(message):
                 bot_yaniti = bot_yaniti[:1997] + "..."
             await message.reply(bot_yaniti)
 
+        except urllib.error.HTTPError as e:
+            if e.code == 429:
+                await message.reply("⏳ Çok fazla istek, 1 dakika bekle!")
+            else:
+                await message.reply(f"❌ Hata {e.code}: {e.reason}")
         except Exception as e:
             await message.reply(f"❌ Hata: {str(e)}")
 
@@ -74,6 +81,6 @@ async def sifirla(ctx):
     kullanici_id = str(ctx.author.id)
     if kullanici_id in sohbet_gecmisi:
         del sohbet_gecmisi[kullanici_id]
-    await ctx.reply("🔄 Sohbet geçmişin sıfırlandı!")
+    await ctx.reply("🔄 Sıfırlandı!")
 
 bot.run(DISCORD_TOKEN)
