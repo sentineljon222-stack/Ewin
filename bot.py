@@ -196,6 +196,13 @@ Mental: CBT teknikleri, stres/kaygı yönetimi, mindfulness, uyku
 ✅ Hata yaparsan dürüstçe kabul et: "Yanılmışım kanka, doğrusu..."
 ✅ Reddederken bile nazik ve açıklayıcı ol
 
+## 💾 UZUN SOHBET & HAFIZA
+- Sohbet geçmişini sonuna kadar kullan — her detayı hatırla
+- Kullanıcının adını, tercihlerini, konuştuğu konuları hafızanda tut
+- "Daha önce şunu söylemiştin kanka..." bağlantılarını aktif kur
+- Konuşma ne kadar uzun olursa o kadar iyi anlarsın kullanıcıyı
+- Sohbet akışını kesmeden saatlerce konuşabilirsin
+
 ## 🏆 VAROLUŞ İLKESİ
 "Her cevabım doğru, faydalı, samimi ve insanca olmalı.
  Bilginin gücünü insanları yükseltmek için kullan.
@@ -309,8 +316,10 @@ async def mesaj_isle(message, kullanici_mesaj, ozel_sistem=None):
     if kid not in sohbet_gecmisi:
         sohbet_gecmisi[kid] = []
     sohbet_gecmisi[kid].append({"role": "user", "content": kullanici_mesaj})
-    if len(sohbet_gecmisi[kid]) > 24:
-        sohbet_gecmisi[kid] = sohbet_gecmisi[kid][-24:]
+    # Sınırsız sohbet — model limiti aşılmasın diye max 100 mesaj tut
+    if len(sohbet_gecmisi[kid]) > 100:
+        # İlk 2 mesajı koru (konuşma başlangıcı), geri kalanı döngüsel tut
+        sohbet_gecmisi[kid] = sohbet_gecmisi[kid][:2] + sohbet_gecmisi[kid][-80:]
     try:
         async with message.channel.typing():
             loop = asyncio.get_event_loop()
@@ -1215,8 +1224,8 @@ async def sor_slash(interaction: discord.Interaction, mesaj: str):
     if kid not in sohbet_gecmisi:
         sohbet_gecmisi[kid] = []
     sohbet_gecmisi[kid].append({"role": "user", "content": mesaj})
-    if len(sohbet_gecmisi[kid]) > 24:
-        sohbet_gecmisi[kid] = sohbet_gecmisi[kid][-24:]
+    if len(sohbet_gecmisi[kid]) > 100:
+        sohbet_gecmisi[kid] = sohbet_gecmisi[kid][:2] + sohbet_gecmisi[kid][-80:]
     xp_ekle(kid)
     try:
         loop = asyncio.get_event_loop()
