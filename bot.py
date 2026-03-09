@@ -259,22 +259,7 @@ def web_ara(sorgu):
     except:
         return None
 
-def arama_gerekli_mi(mesaj):
-    """Mesajın web araması gerektirip gerektirmediğini kontrol eder"""
-    arama_kelimeleri = [
-        "anlık", "güncel", "şu an", "bugün", "şimdi", "son", "haber",
-        "fiyat", "dolar", "euro", "bitcoin", "kripto", "borsa",
-        "hava durumu", "hava", "sıcaklık",
-        "kim kazandı", "maç", "skor", "sonuç",
-        "ne zaman", "en yeni", "son dakika", "breaking",
-        "2024", "2025", "2026", "bu yıl", "bu ay",
-        "nedir", "kimdir", "nerede", "ne kadar",
-        "ara", "araştır", "bul", "search", "google",
-        "film", "dizi", "oyun", "çıktı mı", "yeni",
-        "tarih", "ne zaman oldu"
-    ]
-    mesaj_lower = mesaj.lower()
-    return any(kelime in mesaj_lower for kelime in arama_kelimeleri)
+
 
 # ===================== AI =====================
 def ai_yanit_al(mesajlar, web_sonucu=None):
@@ -319,10 +304,8 @@ async def mesaj_isle(message, kullanici_mesaj):
         async with message.channel.typing():
             loop = asyncio.get_event_loop()
             
-            # Web araması gerekiyor mu kontrol et
-            web_sonucu = None
-            if arama_gerekli_mi(kullanici_mesaj):
-                web_sonucu = await loop.run_in_executor(None, web_ara, kullanici_mesaj)
+            # Her mesaj için otomatik web araması yap
+            web_sonucu = await loop.run_in_executor(None, web_ara, kullanici_mesaj)
             
             bot_yaniti = await loop.run_in_executor(
                 None, ai_yanit_al, sohbet_gecmisi[kullanici_id], web_sonucu
@@ -542,9 +525,7 @@ async def sor_slash(interaction: discord.Interaction, mesaj: str):
     xp_ekle(kullanici_id)
     try:
         loop = asyncio.get_event_loop()
-        web_sonucu = None
-        if arama_gerekli_mi(mesaj):
-            web_sonucu = await loop.run_in_executor(None, web_ara, mesaj)
+        web_sonucu = await loop.run_in_executor(None, web_ara, mesaj)
         yanit = await loop.run_in_executor(None, ai_yanit_al, sohbet_gecmisi[kullanici_id], web_sonucu)
         sohbet_gecmisi[kullanici_id].append({"role": "assistant", "content": yanit})
         if len(yanit) > 2000:
